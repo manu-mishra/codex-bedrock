@@ -243,6 +243,9 @@ pub struct Config {
     /// Key into the model_providers map that specifies which provider to use.
     pub model_provider_id: String,
 
+    /// AWS region for Bedrock Mantel endpoint.
+    pub bedrock_region: Option<String>,
+
     /// Info needed to make an API request to the model.
     pub model_provider: ModelProviderInfo,
 
@@ -1780,7 +1783,7 @@ impl Config {
         let model_provider_id = model_provider
             .or(config_profile.model_provider)
             .or(cfg.model_provider)
-            .unwrap_or_else(|| "openai".to_string());
+            .unwrap_or_else(|| "bedrock-mantel".to_string());
         let model_provider = model_providers
             .get(&model_provider_id)
             .ok_or_else(|| {
@@ -1795,6 +1798,13 @@ impl Config {
 
         let shell_environment_policy = cfg.shell_environment_policy.into();
         let allow_login_shell = cfg.allow_login_shell.unwrap_or(true);
+
+        // Bedrock Mantel does not support the web_search tool type.
+        let web_search_mode = if model_provider_id == codex_model_provider_info::BEDROCK_MANTEL_PROVIDER_ID {
+            WebSearchMode::Disabled
+        } else {
+            web_search_mode
+        };
 
         let history = cfg.history.unwrap_or_default();
 
@@ -1885,6 +1895,11 @@ impl Config {
         let forced_login_method = cfg.forced_login_method;
 
         let model = model.or(config_profile.model).or(cfg.model);
+        let model = if model.is_none() && model_provider_id == "bedrock-mantel" {
+            Some("deepseek.v3.2".to_string())
+        } else {
+            model
+        };
         let service_tier = service_tier_override
             .unwrap_or_else(|| config_profile.service_tier.or(cfg.service_tier));
         let service_tier = match service_tier {
@@ -1975,7 +1990,7 @@ impl Config {
 
         let review_model = override_review_model.or(cfg.review_model);
 
-        let check_for_update_on_startup = cfg.check_for_update_on_startup.unwrap_or(true);
+        let check_for_update_on_startup = cfg.check_for_update_on_startup.unwrap_or(false);
         let model_catalog = load_model_catalog(
             config_profile
                 .model_catalog_json
@@ -2118,6 +2133,7 @@ impl Config {
             model_context_window: cfg.model_context_window,
             model_auto_compact_token_limit: cfg.model_auto_compact_token_limit,
             model_provider_id,
+            bedrock_region: cfg.bedrock_region.clone(),
             model_provider,
             cwd: resolved_cwd,
             startup_warnings,
@@ -2266,7 +2282,7 @@ impl Config {
                 .feedback
                 .as_ref()
                 .and_then(|feedback| feedback.enabled)
-                .unwrap_or(true),
+                .unwrap_or(false),
             tool_suggest,
             tui_notifications: cfg
                 .tui

@@ -1,4 +1,5 @@
 use crate::auth::SharedAuthProvider;
+use crate::chat_completions::spawn_chat_completions_stream;
 use crate::common::ResponseStream;
 use crate::common::ResponsesApiRequest;
 use crate::endpoint::session::EndpointSession;
@@ -146,6 +147,54 @@ impl<T: HttpTransport> ResponsesClient<T> {
             self.session.provider().stream_idle_timeout,
             self.sse_telemetry.clone(),
             turn_state,
+        ))
+    }
+
+    /// Stream a request to the Chat Completions API (`/v1/chat/completions`).
+    ///
+    /// The caller provides a pre-translated Chat Completions request body.
+    /// The response SSE stream is processed and translated back into `ResponseEvent` values.
+    #[instrument(
+        name = "responses.stream_chat_completions",
+        level = "info",
+        skip_all,
+        fields(
+            transport = "chat_completions_http",
+            http.method = "POST",
+            api.path = "chat/completions",
+        )
+    )]
+    pub async fn stream_chat_completions(
+        &self,
+        body: Value,
+        extra_headers: HeaderMap,
+        compression: Compression,
+    ) -> Result<ResponseStream, ApiError> {
+        let request_compression = match compression {
+            Compression::None => RequestCompression::None,
+            Compression::Zstd => RequestCompression::Zstd,
+        };
+
+        let stream_response = self
+            .session
+            .stream_with(
+                Method::POST,
+                "chat/completions",
+                extra_headers,
+                Some(body),
+                |req| {
+                    req.headers.insert(
+                        http::header::ACCEPT,
+                        HeaderValue::from_static("text/event-stream"),
+                    );
+                    req.compression = request_compression;
+                },
+            )
+            .await?;
+
+        Ok(spawn_chat_completions_stream(
+            stream_response,
+            self.session.provider().stream_idle_timeout,
         ))
     }
 }

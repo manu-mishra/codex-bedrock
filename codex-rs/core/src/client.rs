@@ -1211,6 +1211,82 @@ impl ModelClientSession {
         }
     }
 
+    /// Streams a turn via the Chat Completions API.
+    ///
+    /// Translates the internal Responses API request format to Chat Completions format,
+    /// sends to `/v1/chat/completions`, and translates the SSE response back.
+    #[allow(clippy::too_many_arguments)]
+    #[instrument(
+        name = "model_client.stream_chat_completions_api",
+        level = "info",
+        skip_all,
+        fields(
+            model = %model_info.slug,
+            wire_api = "chat",
+            transport = "chat_completions_http",
+            api.path = "chat/completions",
+            turn.has_metadata_header = turn_metadata_header.is_some()
+        )
+    )]
+    async fn stream_chat_completions_api(
+        &self,
+        prompt: &Prompt,
+        model_info: &ModelInfo,
+        session_telemetry: &SessionTelemetry,
+        effort: Option<ReasoningEffortConfig>,
+        summary: ReasoningSummaryConfig,
+        service_tier: Option<ServiceTier>,
+        turn_metadata_header: Option<&str>,
+    ) -> Result<ResponseStream> {
+        let client_setup = self.client.current_client_setup().await?;
+        let transport = ReqwestTransport::new(build_reqwest_client());
+        let request_auth_context = AuthRequestTelemetryContext::new(
+            client_setup.auth.as_ref().map(CodexAuth::auth_mode),
+            client_setup.api_auth.as_ref(),
+            PendingUnauthorizedRetry::default(),
+        );
+        let (request_telemetry, sse_telemetry) = Self::build_streaming_telemetry(
+            session_telemetry,
+            request_auth_context,
+            RequestRouteTelemetry::for_endpoint("chat/completions"),
+            self.client.state.auth_env_telemetry.clone(),
+        );
+        let compression = self.responses_request_compression(client_setup.auth.as_ref());
+
+        let request = self.build_responses_request(
+            &client_setup.api_provider,
+            prompt,
+            model_info,
+            effort,
+            summary,
+            service_tier,
+        )?;
+
+        // Serialize to Value and translate to Chat Completions format
+        let responses_body = serde_json::to_value(&request)?;
+        let chat_body = codex_api::chat_completions::responses_to_chat_completions(&responses_body);
+
+        let headers = if let Some(metadata) = parse_turn_metadata_header(turn_metadata_header) {
+            let mut h = ApiHeaderMap::new();
+            h.insert(X_CODEX_TURN_METADATA_HEADER, metadata);
+            h
+        } else {
+            ApiHeaderMap::new()
+        };
+
+        let client =
+            ApiResponsesClient::new(transport, client_setup.api_provider, client_setup.api_auth)
+                .with_telemetry(Some(request_telemetry), Some(sse_telemetry));
+
+        let stream = client
+            .stream_chat_completions(chat_body, headers, compression)
+            .await
+            .map_err(map_api_error)?;
+
+        let (stream, _) = map_response_stream(stream, session_telemetry.clone());
+        Ok(stream)
+    }
+
     /// Streams a turn via the Responses API over WebSocket transport.
     #[allow(clippy::too_many_arguments)]
     #[instrument(
@@ -1457,6 +1533,18 @@ impl ModelClientSession {
                 }
 
                 self.stream_responses_api(
+                    prompt,
+                    model_info,
+                    session_telemetry,
+                    effort,
+                    summary,
+                    service_tier,
+                    turn_metadata_header,
+                )
+                .await
+            }
+            WireApi::Chat => {
+                self.stream_chat_completions_api(
                     prompt,
                     model_info,
                     session_telemetry,

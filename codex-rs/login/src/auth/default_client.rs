@@ -8,7 +8,6 @@ use codex_client::BuildCustomCaTransportError;
 use codex_client::CodexHttpClient;
 pub use codex_client::CodexRequestBuilder;
 use codex_client::build_reqwest_client_with_custom_ca;
-use codex_terminal_detection::user_agent;
 use reqwest::header::HeaderMap;
 use reqwest::header::HeaderValue;
 use std::sync::LazyLock;
@@ -31,8 +30,8 @@ use std::sync::RwLock;
 /// The full user agent string is returned from the mcp initialize response.
 /// Parenthesis will be added by Codex. This should only specify what goes inside of the parenthesis.
 pub static USER_AGENT_SUFFIX: LazyLock<Mutex<Option<String>>> = LazyLock::new(|| Mutex::new(None));
-pub const DEFAULT_ORIGINATOR: &str = "codex_cli_rs";
-pub const CODEX_INTERNAL_ORIGINATOR_OVERRIDE_ENV_VAR: &str = "CODEX_INTERNAL_ORIGINATOR_OVERRIDE";
+pub const DEFAULT_ORIGINATOR: &str = "codexb_cli_rs";
+pub const CODEX_INTERNAL_ORIGINATOR_OVERRIDE_ENV_VAR: &str = "CODEXB_INTERNAL_ORIGINATOR_OVERRIDE";
 pub const RESIDENCY_HEADER_NAME: &str = "x-openai-internal-codex-residency";
 
 pub use codex_config::ResidencyRequirement;
@@ -129,61 +128,7 @@ pub fn is_first_party_chat_originator(originator_value: &str) -> bool {
 }
 
 pub fn get_codex_user_agent() -> String {
-    let build_version = env!("CARGO_PKG_VERSION");
-    let os_info = os_info::get();
-    let originator = originator();
-    let prefix = format!(
-        "{}/{build_version} ({} {}; {}) {}",
-        originator.value.as_str(),
-        os_info.os_type(),
-        os_info.version(),
-        os_info.architecture().unwrap_or("unknown"),
-        user_agent()
-    );
-    let suffix = USER_AGENT_SUFFIX
-        .lock()
-        .ok()
-        .and_then(|guard| guard.clone());
-    let suffix = suffix
-        .as_deref()
-        .map(str::trim)
-        .filter(|value| !value.is_empty())
-        .map_or_else(String::new, |value| format!(" ({value})"));
-
-    let candidate = format!("{prefix}{suffix}");
-    sanitize_user_agent(candidate, &prefix)
-}
-
-/// Sanitize the user agent string.
-///
-/// Invalid characters are replaced with an underscore.
-///
-/// If the user agent fails to parse, it falls back to fallback and then to ORIGINATOR.
-fn sanitize_user_agent(candidate: String, fallback: &str) -> String {
-    if HeaderValue::from_str(candidate.as_str()).is_ok() {
-        return candidate;
-    }
-
-    let sanitized: String = candidate
-        .chars()
-        .map(|ch| if matches!(ch, ' '..='~') { ch } else { '_' })
-        .collect();
-    if !sanitized.is_empty() && HeaderValue::from_str(sanitized.as_str()).is_ok() {
-        tracing::warn!(
-            "Sanitized Codex user agent because provided suffix contained invalid header characters"
-        );
-        sanitized
-    } else if HeaderValue::from_str(fallback).is_ok() {
-        tracing::warn!(
-            "Falling back to base Codex user agent because provided suffix could not be sanitized"
-        );
-        fallback.to_string()
-    } else {
-        tracing::warn!(
-            "Falling back to default Codex originator because base user agent string is invalid"
-        );
-        originator().value
-    }
+    format!("codex-b/{}", env!("CARGO_PKG_VERSION"))
 }
 
 /// Create an HTTP client with default `originator` and `User-Agent` headers set.
@@ -239,7 +184,7 @@ pub fn default_headers() -> HeaderMap {
 }
 
 fn is_sandboxed() -> bool {
-    std::env::var("CODEX_SANDBOX").as_deref() == Ok("seatbelt")
+    std::env::var("CODEXB_SANDBOX").as_deref() == Ok("seatbelt")
 }
 
 #[cfg(test)]

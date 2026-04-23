@@ -2489,6 +2489,7 @@ version = "0.0.0"
 dependencies = [
  "codex-api",
  "codex-app-server-protocol",
+ "codex-keyring-store",
  "codex-protocol",
  "codex-utils-absolute-path",
  "http 1.4.0",
@@ -2976,6 +2977,7 @@ dependencies = [
  "codex-file-search",
  "codex-git-utils",
  "codex-install-context",
+ "codex-keyring-store",
  "codex-login",
  "codex-mcp",
  "codex-model-provider-info",

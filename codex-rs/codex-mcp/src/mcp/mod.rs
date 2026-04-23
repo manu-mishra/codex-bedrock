@@ -42,7 +42,7 @@ pub type McpManager = McpConnectionManager;
 const MCP_TOOL_NAME_PREFIX: &str = "mcp";
 const MCP_TOOL_NAME_DELIMITER: &str = "__";
 pub const CODEX_APPS_MCP_SERVER_NAME: &str = "codex_apps";
-const CODEX_CONNECTORS_TOKEN_ENV_VAR: &str = "CODEX_CONNECTORS_TOKEN";
+const CODEX_CONNECTORS_TOKEN_ENV_VAR: &str = "CODEXB_CONNECTORS_TOKEN";
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum McpSnapshotDetail {

@@ -146,7 +146,7 @@ use uuid::Uuid;
 use crate::cli::Command as ExecCommand;
 use crate::event_processor::EventProcessor;
 
-const DEFAULT_ANALYTICS_ENABLED: bool = true;
+const DEFAULT_ANALYTICS_ENABLED: bool = false;
 
 enum InitialOperation {
     UserTurn {
@@ -417,14 +417,16 @@ pub async fn run_main(cli: Cli, arg0_paths: Arg0DispatchPaths) -> anyhow::Result
 
     set_default_client_residency_requirement(config.enforce_residency.value());
 
-    if let Err(err) = enforce_login_restrictions(&AuthConfig {
-        codex_home: config.codex_home.to_path_buf(),
-        auth_credentials_store_mode: config.cli_auth_credentials_store_mode,
-        forced_login_method: config.forced_login_method,
-        forced_chatgpt_workspace_id: config.forced_chatgpt_workspace_id.clone(),
-    }) {
-        eprintln!("{err}");
-        std::process::exit(1);
+    if config.model_provider.requires_openai_auth {
+        if let Err(err) = enforce_login_restrictions(&AuthConfig {
+            codex_home: config.codex_home.to_path_buf(),
+            auth_credentials_store_mode: config.cli_auth_credentials_store_mode,
+            forced_login_method: config.forced_login_method,
+            forced_chatgpt_workspace_id: config.forced_chatgpt_workspace_id.clone(),
+        }) {
+            eprintln!("{err}");
+            std::process::exit(1);
+        }
     }
 
     let otel = match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {

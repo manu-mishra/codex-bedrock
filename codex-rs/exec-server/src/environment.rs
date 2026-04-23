@@ -13,7 +13,7 @@ use crate::process::ExecBackend;
 use crate::remote_file_system::RemoteFileSystem;
 use crate::remote_process::RemoteProcess;
 
-pub const CODEX_EXEC_SERVER_URL_ENV_VAR: &str = "CODEX_EXEC_SERVER_URL";
+pub const CODEX_EXEC_SERVER_URL_ENV_VAR: &str = "CODEXB_EXEC_SERVER_URL";
 
 /// Lazily creates and caches the active environment for a session.
 ///

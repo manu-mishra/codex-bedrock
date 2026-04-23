@@ -10,7 +10,7 @@ name = "codex_execpolicy"
 path = "src/lib.rs"
 
 [[bin]]
-name = "codex-execpolicy"
+name = "codex-b-execpolicy"
 path = "src/main.rs"
 
 [lints]
