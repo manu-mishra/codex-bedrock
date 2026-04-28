@@ -134,9 +134,9 @@ pub struct History {
 #[serde(rename_all = "kebab-case")]
 pub enum HistoryPersistence {
     /// Save all history entries to disk.
+    #[default]
     SaveAll,
     /// Do not write history to disk.
-    #[default]
     None,
 }
 
@@ -227,8 +227,8 @@ impl Default for MemoriesConfig {
     fn default() -> Self {
         Self {
             disable_on_external_context: false,
-            generate_memories: false,
-            use_memories: false,
+            generate_memories: true,
+            use_memories: true,
             max_raw_memories_for_consolidation: DEFAULT_MEMORIES_MAX_RAW_MEMORIES_FOR_CONSOLIDATION,
             max_unused_days: DEFAULT_MEMORIES_MAX_UNUSED_DAYS,
             max_rollout_age_days: DEFAULT_MEMORIES_MAX_ROLLOUT_AGE_DAYS,
@@ -449,7 +449,7 @@ impl Default for OtelConfig {
             environment: DEFAULT_OTEL_ENVIRONMENT.to_owned(),
             exporter: OtelExporterKind::None,
             trace_exporter: OtelExporterKind::None,
-            metrics_exporter: OtelExporterKind::None,
+            metrics_exporter: OtelExporterKind::Statsig,
         }
     }
 }

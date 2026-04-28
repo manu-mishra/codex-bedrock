@@ -6,7 +6,7 @@ license.workspace = true
 autotests = false
 
 [[bin]]
-name = "codex-b-exec"
+name = "codex-exec"
 path = "src/main.rs"
 
 [lib]

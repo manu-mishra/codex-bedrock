@@ -90,7 +90,6 @@ mod app_server_session;
 mod ascii_animation;
 #[cfg(not(target_os = "linux"))]
 mod audio_device;
-pub(crate) mod bedrock_setup;
 #[cfg(target_os = "linux")]
 #[allow(dead_code)]
 mod audio_device {
@@ -882,9 +881,7 @@ pub async fn run_main(
         }
     }
 
-    if config.model_provider.requires_openai_auth
-        && matches!(app_server_target, AppServerTarget::Embedded)
-    {
+    if matches!(app_server_target, AppServerTarget::Embedded) {
         #[allow(clippy::print_stderr)]
         if let Err(err) = enforce_login_restrictions(&AuthConfig {
             codex_home: config.codex_home.to_path_buf(),
@@ -962,7 +959,7 @@ pub async fn run_main(
             &config,
             env!("CARGO_PKG_VERSION"),
             /*service_name_override*/ None,
-            /*default_analytics_enabled*/ false,
+            /*default_analytics_enabled*/ true,
         )
     })) {
         Ok(Ok(otel)) => otel,
@@ -1027,7 +1024,7 @@ async fn run_ratatui_app(
     loader_overrides: LoaderOverrides,
     app_server_target: AppServerTarget,
     remote_cwd_override: Option<PathBuf>,
-    mut initial_config: Config,
+    initial_config: Config,
     overrides: ConfigOverrides,
     cli_kv_overrides: Vec<(String, toml::Value)>,
     mut cloud_requirements: CloudRequirementsLoader,
@@ -1056,45 +1053,6 @@ async fn run_ratatui_app(
 
     let mut tui = Tui::new(terminal);
     let mut terminal_restore_guard = TerminalRestoreGuard::new();
-
-    // Run the Bedrock setup wizard if no API key or model is configured.
-    if bedrock_setup::should_show_wizard(&initial_config) {
-        tracing::info!("Starting Bedrock setup wizard");
-        match bedrock_setup::run_wizard(&mut tui.terminal).await {
-            Ok(wizard_result) => {
-                // Inject wizard results into the live config immediately.
-                initial_config.model_provider.experimental_bearer_token =
-                    Some(wizard_result.api_key.clone());
-                initial_config.model = Some(wizard_result.model.clone());
-                if let Err(e) =
-                    bedrock_setup::save_wizard_result(&initial_config.codex_home, &wizard_result)
-                {
-                    tracing::warn!(error = %e, "failed to save wizard result");
-                }
-            }
-            Err(_) => {
-                terminal_restore_guard.restore_silently();
-                return Ok(AppExitInfo {
-                    token_usage: codex_protocol::protocol::TokenUsage::default(),
-                    thread_id: None,
-                    thread_name: None,
-                    update_action: None,
-                    exit_reason: ExitReason::UserRequested,
-                });
-            }
-        }
-    }
-
-    // If the provider has no bearer token (env var not set), try loading from keychain.
-    if initial_config
-        .model_provider
-        .experimental_bearer_token
-        .is_none()
-    {
-        if let Some(key) = bedrock_setup::load_api_key_from_keychain() {
-            initial_config.model_provider.experimental_bearer_token = Some(key);
-        }
-    }
 
     #[cfg(not(debug_assertions))]
     {

@@ -401,13 +401,7 @@ impl ModelsManager {
             .provider
             .auth_manager()
             .and_then(|auth_manager| auth_manager.auth_mode());
-        // Allow model fetching for providers that have a bearer token (e.g., bedrock-mantel
-        // with a key in the keychain or env var) even without ChatGPT auth.
-        let has_bearer_token = self.provider.info().experimental_bearer_token.is_some();
-        if auth_mode != Some(AuthMode::Chatgpt)
-            && !self.provider.info().has_command_auth()
-            && !has_bearer_token
-        {
+        if auth_mode != Some(AuthMode::Chatgpt) && !self.provider.info().has_command_auth() {
             if matches!(
                 refresh_strategy,
                 RefreshStrategy::Offline | RefreshStrategy::OnlineIfUncached

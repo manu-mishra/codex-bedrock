@@ -6,7 +6,7 @@ use std::path::Path;
 use std::path::PathBuf;
 
 const DISCOVERABLE_PLUGIN_MANIFEST_PATHS: &[&str] =
-    &[".codexb-plugin/plugin.json", ".claude-plugin/plugin.json"];
+    &[".codex-plugin/plugin.json", ".claude-plugin/plugin.json"];
 
 pub fn find_plugin_manifest_path(plugin_root: &Path) -> Option<PathBuf> {
     DISCOVERABLE_PLUGIN_MANIFEST_PATHS
@@ -85,9 +85,9 @@ mod tests {
         let skill_path = plugin_root.join("skills/search/SKILL.md");
 
         fs::create_dir_all(skill_path.parent().expect("parent")).expect("mkdir");
-        fs::create_dir_all(plugin_root.join(".codexb-plugin")).expect("mkdir manifest");
+        fs::create_dir_all(plugin_root.join(".codex-plugin")).expect("mkdir manifest");
         fs::write(
-            plugin_root.join(".codexb-plugin/plugin.json"),
+            plugin_root.join(".codex-plugin/plugin.json"),
             r#"{"name":"sample"}"#,
         )
         .expect("write manifest");

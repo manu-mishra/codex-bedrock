@@ -74,9 +74,6 @@ pub struct ConfigToml {
     /// Provider to use from the model_providers map.
     pub model_provider: Option<String>,
 
-    /// AWS region for Bedrock Mantel endpoint. Overrides CODEXB_REGION env var.
-    pub bedrock_region: Option<String>,
-
     /// Size of the context window for the model, in tokens.
     pub model_context_window: Option<i64>,
 

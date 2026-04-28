@@ -10,11 +10,11 @@ name = "codex_windows_sandbox"
 path = "src/lib.rs"
 
 [[bin]]
-name = "codex-b-windows-sandbox-setup"
+name = "codex-windows-sandbox-setup"
 path = "src/bin/setup_main.rs"
 
 [[bin]]
-name = "codex-b-command-runner"
+name = "codex-command-runner"
 path = "src/bin/command_runner.rs"
 
 [lints]

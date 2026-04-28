@@ -4,7 +4,7 @@ use crate::types::ShellEnvironmentPolicyInherit;
 use std::collections::HashMap;
 use std::collections::HashSet;
 
-pub const CODEX_THREAD_ID_ENV_VAR: &str = "CODEXB_THREAD_ID";
+pub const CODEX_THREAD_ID_ENV_VAR: &str = "CODEX_THREAD_ID";
 
 /// Construct a shell environment from the supplied process environment and
 /// shell-environment policy.

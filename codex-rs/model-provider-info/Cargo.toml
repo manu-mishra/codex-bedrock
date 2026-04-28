@@ -15,7 +15,6 @@ workspace = true
 [dependencies]
 codex-api = { workspace = true }
 codex-app-server-protocol = { workspace = true }
-codex-keyring-store = { workspace = true }
 codex-protocol = { workspace = true }
 http = { workspace = true }
 schemars = { workspace = true }
