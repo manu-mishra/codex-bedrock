@@ -139,7 +139,6 @@ impl OnboardingScreen {
                 error: None,
             }))
         }
-        // TODO: add git warning.
         Self {
             request_frame: tui.frame_requester(),
             steps,
@@ -481,7 +480,7 @@ pub(crate) async fn run_onboarding_app(
                         TuiEvent::Paste(text) => {
                             onboarding_screen.handle_paste(text);
                         }
-                        TuiEvent::Draw => {
+                        TuiEvent::Draw | TuiEvent::Resize => {
                             if !did_full_clear_after_success
                                 && onboarding_screen.steps.iter().any(|step| {
                                     if let Step::Auth(w) = step {
